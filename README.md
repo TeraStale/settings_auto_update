@@ -6,14 +6,15 @@
 package updates on Debian and Ubuntu. Other distributions are reported as
 unsupported and are not modified.
 
-Install and schedule the updater with one command (requires `curl` and `sudo`):
+Install and schedule the updater with one command (requires `sudo` and an APT-based Debian/Ubuntu server):
 
 ```sh
-sudo bash -o pipefail -c 'curl -fsSL https://raw.githubusercontent.com/TeraStale/settings_auto_update/main/install.sh | bash'
+sudo bash -o pipefail -c 'apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y curl && curl -fsSL https://raw.githubusercontent.com/TeraStale/settings_auto_update/main/install.sh | bash'
 ```
 
-The installer downloads the updater, installs `cron` if needed, and enables a
-daily check at 04:00 UTC. Package upgrades run only when at least 3 days have
+The installer installs any missing dependencies (`curl`, `cron`, `util-linux`,
+or `systemd`), downloads the updater, and enables a daily check at 04:00 UTC.
+Package upgrades run only when at least 3 days have
 passed since the previous successful upgrade. A pending reboot is still checked
 daily and is performed only during the 04:00-06:00 UTC window.
 

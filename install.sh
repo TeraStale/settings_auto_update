@@ -23,9 +23,30 @@ case "${ID:-}" in
         ;;
 esac
 
+missing_packages=()
 if ! command -v systemctl >/dev/null 2>&1; then
-    printf '%s\n' "ERROR: systemd is required to enable the scheduled job." >&2
-    exit 1
+    missing_packages+=(systemd)
+fi
+
+if ! command -v curl >/dev/null 2>&1; then
+    missing_packages+=(curl)
+fi
+
+if ! command -v logger >/dev/null 2>&1 || ! command -v flock >/dev/null 2>&1; then
+    missing_packages+=(util-linux)
+fi
+
+if ! command -v cron >/dev/null 2>&1; then
+    missing_packages+=(cron)
+fi
+
+if (( ${#missing_packages[@]} > 0 )); then
+    if ! command -v apt-get >/dev/null 2>&1; then
+        printf '%s\n' "ERROR: apt-get is required to install missing packages." >&2
+        exit 1
+    fi
+    apt-get update
+    DEBIAN_FRONTEND=noninteractive apt-get install -y "${missing_packages[@]}"
 fi
 
 script_url=https://raw.githubusercontent.com/TeraStale/settings_auto_update/main/auto-update.sh
@@ -33,11 +54,6 @@ temporary_script=$(mktemp)
 trap 'rm -f "$temporary_script"' EXIT
 curl --fail --location --silent --show-error "$script_url" --output "$temporary_script"
 install -D -m 0755 "$temporary_script" /usr/local/sbin/server-auto-update.sh
-
-if ! command -v cron >/dev/null 2>&1; then
-    apt-get update
-    DEBIAN_FRONTEND=noninteractive apt-get install -y cron
-fi
 
 install -d -m 0755 /etc/cron.d
 cat > /etc/cron.d/server-auto-update <<'EOF'
