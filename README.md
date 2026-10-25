@@ -13,12 +13,11 @@ sudo bash -o pipefail -c 'apt-get update && DEBIAN_FRONTEND=noninteractive apt-g
 ```
 
 The installer installs any missing dependencies (`curl`, `cron`, `util-linux`,
-or `systemd`), downloads the updater, and enables a daily check at 04:00 UTC.
-Package upgrades run only when at least 3 days have
-passed since the previous successful upgrade. A pending reboot is still checked
-daily and is performed only during the 04:00-06:00 UTC window.
+or `systemd`), removes existing APT package-update entries from system cron
+files and root's crontab, then schedules the updater daily at 04:00 and 05:00
+UTC. Package upgrades run at most once per UTC day. The second run checks for a
+pending reboot and performs it within the 04:00-06:00 UTC window.
 
 The script runs as root and automatically installs missing utility packages
 with APT (for example `logger` and `flock`) when needed. If an update reports
-that a reboot is required, the daily check retries the reboot at the next
-scheduled run.
+that a reboot is required, the 05:00 UTC run retries the reboot on the same day.

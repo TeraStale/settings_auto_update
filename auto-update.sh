@@ -67,22 +67,24 @@ if ! flock -n 9; then
 fi
 
 state_file=/var/lib/server-auto-update/last-update
-now=$(date +%s)
-if [[ ! -e /var/run/reboot-required && ! -e /run/reboot-required && -r "$state_file" ]]; then
+day_start=$(date -u -d 'today 00:00' +%s)
+if [[ -r "$state_file" ]]; then
     last_update=$(<"$state_file")
-    if [[ "$last_update" =~ ^[0-9]+$ ]] && (( now - last_update < 259200 )); then
-        log "Packages were updated less than 3 days ago; skipping this run."
-        exit 0
-    fi
+else
+    last_update=0
 fi
 
-log "Starting package update on ${PRETTY_NAME:-$ID}."
-apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get -y \
-    -o Dpkg::Options::=--force-confold \
-    upgrade
-install -d -m 0755 /var/lib/server-auto-update
-printf '%s\n' "$(date +%s)" > "$state_file"
+if [[ "$last_update" =~ ^[0-9]+$ ]] && (( last_update >= day_start )); then
+    log "Packages were already updated today; checking whether a reboot is required."
+else
+    log "Starting package update on ${PRETTY_NAME:-$ID}."
+    apt-get update
+    DEBIAN_FRONTEND=noninteractive apt-get -y \
+        -o Dpkg::Options::=--force-confold \
+        upgrade
+    install -d -m 0755 /var/lib/server-auto-update
+    printf '%s\n' "$(date +%s)" > "$state_file"
+fi
 
 if [[ ! -e /var/run/reboot-required && ! -e /run/reboot-required ]]; then
     log "Update complete; reboot is not required."
